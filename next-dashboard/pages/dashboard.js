@@ -14,22 +14,43 @@ import React from 'react';
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
 const Dashboard = ({ data }) => {
-  // Debug logs
-  console.log("📊 Chart Labels:", data.map(d => new Date(d.last_scanned).toLocaleString()));
-  console.log("📦 Quantities:", data.map(d => d.quantity));
-
   if (!Array.isArray(data) || data.length === 0) {
     return <p style={{ padding: "2rem" }}>⚠️ No inventory data available.</p>;
   }
 
+  // Sort by last scanned time
+  const sortedData = [...data].sort(
+    (a, b) => new Date(a.last_scanned) - new Date(b.last_scanned)
+  );
+
+  // Calculate cumulative quantity over time
+  let runningTotal = 0;
+  const cumulativeData = sortedData.map(entry => {
+    if (entry.status === 'IN') {
+      runningTotal += entry.quantity;
+    } else if (entry.status === 'OUT') {
+      runningTotal -= entry.quantity;
+    }
+
+    return {
+      time: new Date(entry.last_scanned).toLocaleString(),
+      total: runningTotal,
+    };
+  });
+
+  // Debug logs
+  console.log("📊 Sorted Time Labels:", cumulativeData.map(d => d.time));
+  console.log("📦 Cumulative Totals:", cumulativeData.map(d => d.total));
+  console.log("✅ Final Running Total:", runningTotal); // Should be 145
+
   const chartData = {
-    labels: data.map(d => new Date(d.last_scanned).toLocaleString()),
+    labels: cumulativeData.map(d => d.time),
     datasets: [
       {
-        label: 'Quantity Over Time',
-        data: data.map(d => d.quantity),
+        label: '📈 Cumulative Quantity Over Time',
+        data: cumulativeData.map(d => d.total),
         borderColor: 'blue',
-        backgroundColor: 'rgba(0, 0, 255, 0.1)',
+        backgroundColor: 'rgba(0, 123, 255, 0.1)',
         fill: true,
         tension: 0.3,
         pointRadius: 4,
@@ -46,17 +67,12 @@ const Dashboard = ({ data }) => {
     },
     scales: {
       x: {
-        title: {
-          display: true,
-          text: 'Scan Time'
-        }
+        title: { display: true, text: 'Scan Timestamp' },
+        ticks: { autoSkip: true, maxTicksLimit: 10 }
       },
       y: {
-        beginAtZero: true,
-        title: {
-          display: true,
-          text: 'Quantity'
-        }
+        title: { display: true, text: 'Cumulative Quantity' },
+        beginAtZero: true
       }
     }
   };
@@ -83,6 +99,7 @@ const Dashboard = ({ data }) => {
     </div>
   );
 };
+
 
 export async function getServerSideProps() {
 //   try {
