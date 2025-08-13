@@ -10,8 +10,8 @@ def scan_barcode():
     data= request.json
     conn= psycopg2.connect(
         dbname="warehouse",
-        user="postgres",
-        password="loro102003",
+        user="",
+        password="",
         host="localhost",
         port="5432")
     cursor= conn.cursor()
